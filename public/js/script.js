@@ -1,4 +1,33 @@
 document.addEventListener("DOMContentLoaded", function () {
+    const searchContainer = document.getElementById("search-container");
+    const searchInput = document.getElementById("search-input");
+    const resultsDiv = document.getElementById("results");
+    const noResultsDiv = document.getElementById("no-results");
+
+    searchInput.addEventListener("input", function () {
+        filterResults(this.value);
+    });
+
+    function filterResults(query) {
+        const items = resultsDiv.querySelectorAll("li");
+        let hasResults = false;
+
+        items.forEach((item) => {
+            const name = item.querySelector("span").textContent.toLowerCase();
+            if (name.includes(query.toLowerCase())) {
+                item.style.display = "";
+                item.closest("ul").style.display = ""; // Show parent folders
+                hasResults = true;
+            } else {
+                item.style.display = "none";
+            }
+        });
+        if (hasResults) {
+            noResultsDiv.classList.add("hidden");
+        } else {
+            noResultsDiv.classList.remove("hidden");
+        }
+    }
     document
         .getElementById("file-upload-form")
         .addEventListener("submit", function (event) {
@@ -16,6 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Show loader and hide results
             loader.classList.remove("hidden");
             resultsDiv.classList.add("hidden");
+            searchContainer.classList.add("hidden");
 
             axios
                 .post("/upload", formData, {
@@ -42,6 +72,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         resultsDiv.innerHTML = renderFolderStructure(
                             response.data.structure
                         );
+                        filterResults(searchInput.value);
+
+                        // Show search input if results are present
+                        if (resultsDiv.innerHTML.trim() !== "") {
+                            searchContainer.classList.remove("hidden");
+                        }
                     }
 
                     // Hide loader and show results
@@ -95,12 +131,40 @@ function renderFolderStructure(items, level = 0) {
                 ? '<i class="fas fa-folder ' + iconClass + '"></i>'
                 : '<i class="' + getFileIconClass(item.name) + '"></i>';
 
+        // Determine the size class
+        let sizeClass = "";
+        if (item.size) {
+            // Extract numeric value from size
+            const sizeMatch = item.size.match(/(\d+\.?\d*)\s*(B|KB|MB|GB)/);
+            if (sizeMatch) {
+                const sizeValue = parseFloat(sizeMatch[1]);
+                const sizeUnit = sizeMatch[2];
+
+                if (
+                    sizeUnit === "B" ||
+                    (sizeUnit === "KB" && sizeValue < 1000)
+                ) {
+                    sizeClass = "size-small";
+                } else if (
+                    sizeUnit === "KB" ||
+                    (sizeUnit === "MB" && sizeValue < 100)
+                ) {
+                    sizeClass = "size-medium";
+                } else {
+                    sizeClass = "size-large";
+                }
+                sizeText =
+                    '<span class="' + sizeClass + '">' + item.size + "</span>";
+            }
+        }
+
         html +=
             '<li class="text-gray-700 mb-2">' +
             icon +
             '<span class="ml-2">' +
             item.name +
-            (item.size ? " - " + item.size : "");
+            (sizeText ? " - " + sizeText : "") +
+            "</span>";
 
         if (item.children && item.children.length > 0) {
             html += '<ul class="folder-contents ml-4 hidden">';

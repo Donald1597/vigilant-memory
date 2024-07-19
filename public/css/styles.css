@@ -54,6 +54,18 @@
     cursor: pointer;
 }
 
+.size-small {
+    color: #38a169;
+}
+
+.size-medium {
+    color: #f59e0b;
+}
+
+.size-large {
+    color: #e53e3e;
+}
+
 /* Icon Styles */
 .folder-icon {
     color: #f59e0b;

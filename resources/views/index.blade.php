@@ -31,6 +31,10 @@
             </div>
         </form>
 
+        <div id="search-container" class="bg-white p-6 rounded-lg shadow-md mb-8 hidden">
+            <input type="text" id="search-input" placeholder="Search files and folders..."
+                class="border border-gray-300 rounded-lg p-3 text-gray-700 w-full" />
+        </div>
 
         <!-- Loader Element -->
         <div id="loader" class="hidden flex flex-col justify-center items-center mb-6">
@@ -45,6 +49,7 @@
 
         <!-- Results Element -->
         <div id="results" class="bg-white border border-gray-300 rounded-lg p-6 shadow-lg hidden">
+            <div id="no-results" class="hidden text-center text-gray-500">No results found.</div>
             <!-- Results will be displayed here -->
         </div>
     </div>
