@@ -1,66 +1,94 @@
-document
-    .getElementById("file-upload-form")
-    .addEventListener("submit", function (event) {
-        event.preventDefault();
+document.addEventListener("DOMContentLoaded", function () {
+    document
+        .getElementById("file-upload-form")
+        .addEventListener("submit", function (event) {
+            event.preventDefault();
 
-        let formData = new FormData(this);
-        let loader = document.getElementById("loader");
-        let resultsDiv = document.getElementById("results");
-        let progressBarInner = document.getElementById("progress-bar-inner");
-        let progressPercentage = document.getElementById("progress-percentage");
+            let formData = new FormData(this);
+            let loader = document.getElementById("loader");
+            let resultsDiv = document.getElementById("results");
+            let progressBarInner =
+                document.getElementById("progress-bar-inner");
+            let progressPercentage = document.getElementById(
+                "progress-percentage"
+            );
 
-        // Show loader and hide results
-        loader.classList.remove("hidden");
-        resultsDiv.classList.add("hidden");
+            // Show loader and hide results
+            loader.classList.remove("hidden");
+            resultsDiv.classList.add("hidden");
 
-        axios
-            .post("/upload", formData, {
-                headers: {
-                    "X-CSRF-TOKEN": document
-                        .querySelector('meta[name="csrf-token"]')
-                        .getAttribute("content"),
-                    "Content-Type": "multipart/form-data",
-                },
-                onUploadProgress: function (progressEvent) {
-                    let percentCompleted = Math.round(
-                        (progressEvent.loaded * 100) / progressEvent.total
-                    );
-                    progressBarInner.style.width = percentCompleted + "%";
-                    progressPercentage.textContent = percentCompleted + "%";
-                },
-            })
-            .then((response) => {
-                resultsDiv.innerHTML = "";
+            axios
+                .post("/upload", formData, {
+                    headers: {
+                        "X-CSRF-TOKEN": document
+                            .querySelector('meta[name="csrf-token"]')
+                            .getAttribute("content"),
+                        "Content-Type": "multipart/form-data",
+                    },
+                    onUploadProgress: function (progressEvent) {
+                        let percentCompleted = Math.round(
+                            (progressEvent.loaded * 100) / progressEvent.total
+                        );
+                        progressBarInner.style.width = percentCompleted + "%";
+                        progressPercentage.textContent = percentCompleted + "%";
+                    },
+                })
+                .then((response) => {
+                    resultsDiv.innerHTML = "";
 
-                if (response.data.error) {
-                    resultsDiv.textContent = response.data.error;
-                } else if (response.data.structure) {
-                    resultsDiv.innerHTML = renderFolderStructure(
-                        response.data.structure
-                    );
-                }
+                    if (response.data.error) {
+                        resultsDiv.textContent = response.data.error;
+                    } else if (response.data.structure) {
+                        resultsDiv.innerHTML = renderFolderStructure(
+                            response.data.structure
+                        );
+                    }
 
-                // Hide loader and show results
-                loader.classList.add("hidden");
-                resultsDiv.classList.remove("hidden");
-            })
-            .catch((error) => {
-                console.error("Error:", error);
-                resultsDiv.textContent =
-                    "An error occurred while processing the request.";
-                // Hide loader and show results
-                loader.classList.add("hidden");
-                resultsDiv.classList.remove("hidden");
-            });
-    });
+                    // Hide loader and show results
+                    loader.classList.add("hidden");
+                    resultsDiv.classList.remove("hidden");
 
+                    // Add click event listeners to folder icons
+                    document
+                        .querySelectorAll(".folder-icon")
+                        .forEach((icon) => {
+                            icon.addEventListener("click", function () {
+                                this.parentElement
+                                    .querySelector(".folder-contents")
+                                    .classList.toggle("hidden");
+                                this.classList.toggle("fa-folder");
+                                this.classList.toggle("fa-folder-open");
+                            });
+                        });
+
+                    // Open the first folder by default
+                    let firstFolderIcon =
+                        document.querySelector(".folder-icon");
+                    if (firstFolderIcon) {
+                        firstFolderIcon.classList.add("fa-folder-open");
+                        firstFolderIcon.classList.remove("fa-folder");
+                        firstFolderIcon.parentElement
+                            .querySelector(".folder-contents")
+                            .classList.remove("hidden");
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    resultsDiv.textContent =
+                        "An error occurred while processing the request.";
+                    // Hide loader and show results
+                    loader.classList.add("hidden");
+                    resultsDiv.classList.remove("hidden");
+                });
+        });
+});
 function renderFolderStructure(items, level = 0) {
     let html = '<ul class="no-list-style ml-' + level * 4 + '">';
 
     items.forEach((item) => {
         let iconClass =
             item.children && item.children.length > 0
-                ? "folder-icon"
+                ? "folder-icon cursor-pointer"
                 : "file-icon";
         let icon =
             item.children && item.children.length > 0
@@ -75,7 +103,9 @@ function renderFolderStructure(items, level = 0) {
             (item.size ? " - " + item.size : "");
 
         if (item.children && item.children.length > 0) {
+            html += '<ul class="folder-contents ml-4 hidden">';
             html += renderFolderStructure(item.children, level + 1);
+            html += "</ul>";
         }
 
         html += "</li>";

@@ -50,6 +50,10 @@
     }
 }
 
+.cursor-pointer {
+    cursor: pointer;
+}
+
 /* Icon Styles */
 .folder-icon {
     color: #f59e0b;

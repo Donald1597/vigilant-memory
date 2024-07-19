@@ -48,8 +48,8 @@
             <!-- Results will be displayed here -->
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="{{ asset('js/script.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js" defer></script>
+    <script src="{{ asset('js/script.js') }}" defer></script>
 </body>
 
 </html>
