@@ -3,9 +3,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search-input");
     const resultsDiv = document.getElementById("results");
     const noResultsDiv = document.getElementById("no-results");
+    const form = document.getElementById("file-upload-form");
+    const loader = document.getElementById("loader");
+    const progressBarInner = document.getElementById("progress-bar-inner");
+    const progressPercentage = document.getElementById("progress-percentage");
 
-    searchInput.addEventListener("input", function () {
-        filterResults(this.value);
+    searchInput.addEventListener("input", () =>
+        filterResults(searchInput.value)
+    );
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        handleFormSubmit(new FormData(form));
     });
 
     function filterResults(query) {
@@ -22,194 +31,180 @@ document.addEventListener("DOMContentLoaded", function () {
                 item.style.display = "none";
             }
         });
-        if (hasResults) {
-            noResultsDiv.classList.add("hidden");
-        } else {
-            noResultsDiv.classList.remove("hidden");
-        }
+
+        noResultsDiv.classList.toggle("hidden", hasResults);
     }
-    document
-        .getElementById("file-upload-form")
-        .addEventListener("submit", function (event) {
-            event.preventDefault();
 
-            let formData = new FormData(this);
-            let loader = document.getElementById("loader");
-            let resultsDiv = document.getElementById("results");
-            let progressBarInner =
-                document.getElementById("progress-bar-inner");
-            let progressPercentage = document.getElementById(
-                "progress-percentage"
+    function handleFormSubmit(formData) {
+        // Show loader and hide results
+        loader.classList.remove("hidden");
+        resultsDiv.classList.add("hidden");
+        searchContainer.classList.add("hidden");
+
+        axios
+            .post("/upload", formData, {
+                headers: {
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute("content"),
+                    "Content-Type": "multipart/form-data",
+                },
+                onUploadProgress: updateProgress,
+            })
+            .then(handleUploadResponse)
+            .catch(handleUploadError);
+    }
+
+    function updateProgress(progressEvent) {
+        const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+        );
+        progressBarInner.style.width = `${percentCompleted}%`;
+        progressPercentage.textContent = `${percentCompleted}%`;
+    }
+
+    function handleUploadResponse(response) {
+        resultsDiv.innerHTML = "";
+
+        if (response.data.error) {
+            resultsDiv.textContent = response.data.error;
+        } else if (response.data.structure) {
+            resultsDiv.innerHTML = renderFolderStructure(
+                response.data.structure
             );
+            filterResults(searchInput.value);
 
-            // Show loader and hide results
-            loader.classList.remove("hidden");
-            resultsDiv.classList.add("hidden");
-            searchContainer.classList.add("hidden");
-
-            axios
-                .post("/upload", formData, {
-                    headers: {
-                        "X-CSRF-TOKEN": document
-                            .querySelector('meta[name="csrf-token"]')
-                            .getAttribute("content"),
-                        "Content-Type": "multipart/form-data",
-                    },
-                    onUploadProgress: function (progressEvent) {
-                        let percentCompleted = Math.round(
-                            (progressEvent.loaded * 100) / progressEvent.total
-                        );
-                        progressBarInner.style.width = percentCompleted + "%";
-                        progressPercentage.textContent = percentCompleted + "%";
-                    },
-                })
-                .then((response) => {
-                    resultsDiv.innerHTML = "";
-
-                    if (response.data.error) {
-                        resultsDiv.textContent = response.data.error;
-                    } else if (response.data.structure) {
-                        resultsDiv.innerHTML = renderFolderStructure(
-                            response.data.structure
-                        );
-                        filterResults(searchInput.value);
-
-                        // Show search input if results are present
-                        if (resultsDiv.innerHTML.trim() !== "") {
-                            searchContainer.classList.remove("hidden");
-                        }
-                    }
-
-                    // Hide loader and show results
-                    loader.classList.add("hidden");
-                    resultsDiv.classList.remove("hidden");
-
-                    // Add click event listeners to folder icons
-                    document
-                        .querySelectorAll(".folder-icon")
-                        .forEach((icon) => {
-                            icon.addEventListener("click", function () {
-                                this.parentElement
-                                    .querySelector(".folder-contents")
-                                    .classList.toggle("hidden");
-                                this.classList.toggle("fa-folder");
-                                this.classList.toggle("fa-folder-open");
-                            });
-                        });
-
-                    // Open the first folder by default
-                    let firstFolderIcon =
-                        document.querySelector(".folder-icon");
-                    if (firstFolderIcon) {
-                        firstFolderIcon.classList.add("fa-folder-open");
-                        firstFolderIcon.classList.remove("fa-folder");
-                        firstFolderIcon.parentElement
-                            .querySelector(".folder-contents")
-                            .classList.remove("hidden");
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error:", error);
-                    resultsDiv.textContent =
-                        "An error occurred while processing the request.";
-                    // Hide loader and show results
-                    loader.classList.add("hidden");
-                    resultsDiv.classList.remove("hidden");
-                });
-        });
-});
-function renderFolderStructure(items, level = 0) {
-    let html = '<ul class="no-list-style ml-' + level * 4 + '">';
-
-    items.forEach((item) => {
-        let iconClass =
-            item.children && item.children.length > 0
-                ? "folder-icon cursor-pointer"
-                : "file-icon";
-        let icon =
-            item.children && item.children.length > 0
-                ? '<i class="fas fa-folder ' + iconClass + '"></i>'
-                : '<i class="' + getFileIconClass(item.name) + '"></i>';
-
-        // Determine the size class
-        let sizeClass = "";
-        if (item.size) {
-            // Extract numeric value from size
-            const sizeMatch = item.size.match(/(\d+\.?\d*)\s*(B|KB|MB|GB)/);
-            if (sizeMatch) {
-                const sizeValue = parseFloat(sizeMatch[1]);
-                const sizeUnit = sizeMatch[2];
-
-                if (
-                    sizeUnit === "B" ||
-                    (sizeUnit === "KB" && sizeValue < 1000)
-                ) {
-                    sizeClass = "size-small";
-                } else if (
-                    sizeUnit === "KB" ||
-                    (sizeUnit === "MB" && sizeValue < 100)
-                ) {
-                    sizeClass = "size-medium";
-                } else {
-                    sizeClass = "size-large";
-                }
-                sizeText =
-                    '<span class="' + sizeClass + '">' + item.size + "</span>";
+            // Show search input if results are present
+            if (resultsDiv.innerHTML.trim() !== "") {
+                searchContainer.classList.remove("hidden");
             }
         }
 
-        html +=
-            '<li class="text-gray-700 mb-2">' +
-            icon +
-            '<span class="ml-2">' +
-            item.name +
-            (sizeText ? " - " + sizeText : "") +
-            "</span>";
+        // Hide loader and show results
+        loader.classList.add("hidden");
+        resultsDiv.classList.remove("hidden");
 
-        if (item.children && item.children.length > 0) {
-            html += '<ul class="folder-contents ml-4 hidden">';
-            html += renderFolderStructure(item.children, level + 1);
-            html += "</ul>";
+        // Add click event listeners to folder icons
+        addFolderIconListeners();
+
+        // Open the first folder by default
+        openFirstFolder();
+    }
+
+    function handleUploadError(error) {
+        console.error("Error:", error);
+        resultsDiv.textContent =
+            "An error occurred while processing the request.";
+        loader.classList.add("hidden");
+        resultsDiv.classList.remove("hidden");
+    }
+
+    function addFolderIconListeners() {
+        document.querySelectorAll(".folder-icon").forEach((icon) => {
+            icon.addEventListener("click", function () {
+                const folderContents =
+                    this.parentElement.querySelector(".folder-contents");
+                folderContents.classList.toggle("hidden");
+                this.classList.toggle("fa-folder");
+                this.classList.toggle("fa-folder-open");
+            });
+        });
+    }
+
+    function openFirstFolder() {
+        const firstFolderIcon = document.querySelector(".folder-icon");
+        if (firstFolderIcon) {
+            firstFolderIcon.classList.add("fa-folder-open");
+            firstFolderIcon.classList.remove("fa-folder");
+            firstFolderIcon.parentElement
+                .querySelector(".folder-contents")
+                .classList.remove("hidden");
         }
+    }
 
-        html += "</li>";
-    });
+    function renderFolderStructure(items, level = 0) {
+        return `<ul class="no-list-style ml-${level * 4}">
+            ${items
+                .map((item) => {
+                    const isFolder = item.children && item.children.length > 0;
+                    const iconClass = isFolder
+                        ? "folder-icon cursor-pointer"
+                        : "file-icon";
+                    const icon = isFolder
+                        ? `<i class="fas fa-folder ${iconClass}"></i>`
+                        : `<i class="${getFileIconClass(item.name)}"></i>`;
 
-    html += "</ul>";
+                    const sizeText = item.size ? getSizeText(item.size) : "";
 
-    return html;
-}
+                    return `
+                    <li class="text-gray-700 mb-2">
+                        ${icon}
+                        <span class="ml-2">${item.name}${
+                        sizeText ? ` - ${sizeText}` : ""
+                    }</span>
+                        ${
+                            isFolder
+                                ? `<ul class="folder-contents ml-4 hidden">${renderFolderStructure(
+                                      item.children,
+                                      level + 1
+                                  )}</ul>`
+                                : ""
+                        }
+                    </li>`;
+                })
+                .join("")}
+        </ul>`;
+    }
 
-function getFileIconClass(fileName) {
-    const ext = fileName.split(".").pop().toLowerCase();
-    const icons = {
-        mp4: "fa-regular fa-file-video",
-        html: "fa-brands fa-html5",
-        php: "fa-brands fa-php",
-        js: "fa-brands fa-js",
-        ts: "fa-solid fa-code",
-        vue: "fa-brands fa-vuejs",
-        mp3: "fa-solid fa-file-audio",
-        jpeg: "fa-solid fa-file-image",
-        jpg: "fa-solid fa-file-image",
-        png: "fa-solid fa-file-image",
-        json: "fa-solid fa-code",
-        lock: "fa-solid fa-code",
-        sqlite: "fa-solid fa-database",
-        sql: "fa-solid fa-database",
-        ico: "fa-solid fa-star",
-        css: "fa-brands fa-css3",
-        git: "fa-brands fa-git-alt",
-        gitignore: "fa-brands fa-git-alt",
-        env: "fa-solid fa-sliders",
-        pdf: "fa-solid fa-file-pdf",
-        docx: "fa-solid fa-file-word",
-        doc: "fa-solid fa-file-word",
-        xlsx: "fa-solid fa-file-excel",
-        xls: "fa-solid fa-file-excel",
-        zip: "fa-solid fa-file-zipper",
-        rar: "fa-solid fa-file-zipper",
-    };
+    function getSizeText(size) {
+        const sizeMatch = size.match(/(\d+\.?\d*)\s*(B|KB|MB|GB)/);
+        if (sizeMatch) {
+            const sizeValue = parseFloat(sizeMatch[1]);
+            const sizeUnit = sizeMatch[2];
+            const sizeClass =
+                sizeUnit === "B" || (sizeUnit === "KB" && sizeValue < 1000)
+                    ? "size-small"
+                    : sizeUnit === "KB" ||
+                      (sizeUnit === "MB" && sizeValue < 100)
+                    ? "size-medium"
+                    : "size-large";
 
-    return icons[ext] || "fas fa-file";
-}
+            return `<span class="${sizeClass}">${size}</span>`;
+        }
+        return "";
+    }
+
+    function getFileIconClass(fileName) {
+        const ext = fileName.split(".").pop().toLowerCase();
+        const icons = {
+            mp4: "fa-regular fa-file-video",
+            html: "fa-brands fa-html5",
+            php: "fa-brands fa-php",
+            js: "fa-brands fa-js",
+            ts: "fa-solid fa-code",
+            vue: "fa-brands fa-vuejs",
+            mp3: "fa-solid fa-file-audio",
+            jpeg: "fa-solid fa-file-image",
+            jpg: "fa-solid fa-file-image",
+            png: "fa-solid fa-file-image",
+            json: "fa-solid fa-code",
+            lock: "fa-solid fa-code",
+            sqlite: "fa-solid fa-database",
+            sql: "fa-solid fa-database",
+            ico: "fa-solid fa-star",
+            css: "fa-brands fa-css3",
+            git: "fa-brands fa-git-alt",
+            gitignore: "fa-brands fa-git-alt",
+            env: "fa-solid fa-sliders",
+            pdf: "fa-solid fa-file-pdf",
+            docx: "fa-solid fa-file-word",
+            doc: "fa-solid fa-file-word",
+            xlsx: "fa-solid fa-file-excel",
+            xls: "fa-solid fa-file-excel",
+            zip: "fa-solid fa-file-zipper",
+            rar: "fa-solid fa-file-zipper",
+        };
+
+        return icons[ext] || "fas fa-file";
+    }
+});
