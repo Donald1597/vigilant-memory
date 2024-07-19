@@ -1,0 +1,117 @@
+/* Loader Styles */
+.loader {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 4px solid #3490dc;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+.progress-bar-container {
+    width: 100%;
+    position: relative;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 12px;
+    background-color: #f3f3f3;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 10px;
+    position: relative;
+}
+
+.progress-bar-inner {
+    height: 100%;
+    background-color: #3498db;
+    width: 0%;
+    transition: width 0.4s ease;
+}
+
+.progress-percentage {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: bold;
+    color: #3498db;
+    padding-right: 10px;
+    background: white;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Icon Styles */
+.folder-icon {
+    color: #f59e0b;
+    font-size: 1.25rem;
+}
+
+.file-icon {
+    color: #3b82f6;
+    font-size: 1.25rem;
+}
+
+.fa-file-video {
+    color: #86ff33;
+}
+.fa-html5 {
+    color: #e34c26;
+}
+.fa-php {
+    color: #777bb4;
+}
+.fa-js {
+    color: #f7df1e;
+}
+.fa-vuejs {
+    color: #33ff9a;
+}
+.fa-code {
+    color: #3178c6;
+}
+.fa-file-audio {
+    color: #33b3ff;
+}
+.fa-file-image {
+    color: #6a33ff;
+}
+.fa-database {
+    color: #3350ff;
+}
+.fa-star {
+    color: #fffc33;
+}
+.fa-css3 {
+    color: #3377ff;
+}
+.fa-git-alt {
+    color: #ff9233;
+}
+.fa-sliders {
+    color: #fffc33;
+}
+.fa-file {
+    color: #7133ff;
+}
+.fa-file-pdf {
+    color: #ffc033;
+}
+.fa-file-word {
+    color: #3377ff;
+}
+.fa-file-excel {
+    color: #33ff9a;
+}
+.fa-file-zipper {
+    color: #33fffa;
+}
